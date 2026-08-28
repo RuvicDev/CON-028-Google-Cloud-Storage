@@ -41,6 +41,8 @@ _MAX_LIST_LIMIT = 1_000
 
 
 def _validate_key(key: str) -> str:
+    if key is not None and not isinstance(key, str):
+        raise GcsDataError(f"key debe ser un string, no {type(key).__name__}.")
     key = (key or "").strip()
     if not key:
         raise GcsDataError("key no puede estar vacía.")
@@ -152,7 +154,10 @@ class GcsClient:
             >>> client.list_objects(prefix="reportes/", limit=10)
             [{'name': 'reportes/2026-07.csv', 'size': 15234, 'updated': '2026-07-17T10:00:00Z'}]
         """
-        limit = max(1, min(int(limit), _MAX_LIST_LIMIT))
+        try:
+            limit = max(1, min(int(limit), _MAX_LIST_LIMIT))
+        except (TypeError, ValueError) as exc:
+            raise GcsDataError(f"limit inválido: {limit!r}. Debe ser un número entero.") from exc
         try:
             blobs = self._get_client().list_blobs(
                 self.config.bucket, prefix=prefix or None, max_results=limit
